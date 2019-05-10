@@ -199,8 +199,10 @@ To each pair of vertices $(i,j)$ a weight, $\alpha_{i,j} \geq 0$, corresponding 
 \begin{itemize}
     \item There is an edge between node $i$ and node $j$ $\iff \alpha_{i,j} > 0$.
     \item The infectious parameter might be dynamic with respect to time, i.e $\alpha_{i,j} \leadsto \alpha_{i,j}(t)$.
+    \item If $X{\sim} Exp(\alpha)$ then $E[X]=\frac{1}{\alpha}$. It is the \textit{expected waiting time}.
 \end{itemize}
 \end{block}
+
 \end{frame}
 \begin{frame}{Problem formulation}
 \begin{block}{Problem 1- Discrete optimization}
@@ -216,10 +218,141 @@ Given a collection of cascade $C$, find the correct infection parameters set $\m
 \end{frame}
 
 \section{Related work}
-\begin{frame}{Frame Title}
-    
+\begin{frame}{Related work}
+\begin{block}{Solutions of Problem 1}
+\begin{itemize}
+    \item \cite{NetInf} and \cite{MultiTrees} developed \textit{NetInf} and \textit{MultiTrees} algorithms.
+    \item Submodular optimization with greedy algorithm.
+    \item Requires apriori knowledge of the number of edges.
+    \item Hard/Not efficient to extend to the dynamic setting.
+\end{itemize}
+\end{block}
+\begin{block}{Solution of Problem 2}
+\begin{itemize}
+    \item \cite{NetRate} and \cite{InfoPath} developed \textit{NetRate} and \textit{InfoPaths} algorithms.
+    \item Convex optimization solved with CVX and stochastic gradient descent (SGD).
+    \item Easily extendable to the dynamic setting and no apriori knowledge needed.
+    \item Computation time is higher than NetInf.
+    \item No convergence complexity proofs.
+\end{itemize}
+\end{block}
+\end{frame}
+
+\begin{frame}{Probabilistic modeling (Exponential case)}
+\begin{itemize}
+    \item \textbf{Likelihood of transmission} $j\rightarrow i$ : %ATTENTION : Does not mean that j is the FIRST to infect i.
+    \begin{equation}
+    \mathscr{L}(\alpha_{j,i}|t_i-t_j) = f_{\alpha_{j,i}}(t_i-t_j) = \begin{cases}
+    \alpha_{j,i} e^{-\alpha_{j,i}(t_i-t_j)}     &  \text{if} t_j < t_i\\
+    0    & \text{otherwise}
+    \end{cases}
+\end{equation}
+\item \textbf{Cumulative density function (CDF)} :
+\begin{equation}
+    F(t_i-t_j;\alpha_{j,i}) = \int_{0}^{t_i-t_j}f_{\alpha_{j,i}}(t)dt = 1-e^{-\alpha_{j,i}(t_i-t_j)}
+\end{equation}
+\item \textbf{Survival function} of node $i$ by time $t_i$ (w.r.t node $j$):
+\begin{equation}
+    S(t_i-t_j;\alpha_{j,i})=\mathds{P}(t_j + X \geq t_i) = 1-F(t_i-t_j;\alpha_{j,i}) = e^{-\alpha_{j,i}(t_i-t_j)}
+\end{equation}
+\item \textbf{Instantaneous infection rate} :
+\begin{equation}
+    H(t_i|t_j;\alpha_{j,i}) = \frac{f_{\alpha_{j,i}}(t_i-t_j)}{S(t_i-t_j;\alpha_{j,i})} = \alpha_{j,i}
+\end{equation}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Example}
+\end{frame}
+
+\begin{frame}{Likelihood of an edge in a cascade}
+\begin{block}{likelihood of an edge (j,i)}
+A node gets infected once the \alert{first} parent infects it. The likelihood of parent j being the first parent of i is given by :
+\begin{equation}
+    f_{\alpha_{j,i}}(t_i-t_j) \prod_{j\neq k,t_k<t_i}S(t_i-t_k;\alpha_{k,i})
+\end{equation}
+Then the likelihood of node i getting infected at time $t_i$ by one of the previously infected nodes $(t_1,\dots,t_N|t_k<t_i)$ is given by :
+\begin{equation}
+    \sum_{j:t_j<t_i}f_{\alpha_{j,i}}(t_i-t_j)\prod_{j\neq k,t_k<t_i}S(t_i-t_k;\alpha_{k,i})
+\end{equation}
+\end{block}
+\end{frame}
+\begin{frame}{Likelihood of a cascade}
+\begin{block}{Infected nodes}
+$\textbf{t}^{\leq T} = \{t_1,\dots,t_N|t_i\leq T\}$
+    \begin{equation}
+        \begin{split}
+            \mathscr{L}(\mathbf{t}^{\leq T};\mathscr{A}) &= \prod_{i:t_i \leq T}\sum_{j:t_j<t_i}f_{\alpha_{j,i}}(t_i-t_j)\prod_{j\neq k,t_k<t_i}S(t_i-t_k;\alpha_{k,i})\\
+            &= \prod_{i : t_i\leq T}\prod_{k:t_k<t_i}S(t_i-t_k;\alpha_{k,i}) \sum_{j:t_j<t_i}\frac{f_{\alpha_{j,i}}(t_i-t_j)}{S(t_i-t_j;\alpha_{j,i})}
+        \end{split}
+    \end{equation}
+\end{block}
+\begin{block}{Total likelihood}
+\begin{equation}
+    \mathscr{L}(\textbf{t};\mathscr{A}) = \mathscr{L}(\textbf{t}^{\leq T};\mathscr{A}) \prod_{i:t_i\leq T}\prod_{m:t_m>T}S(T-t_i;\alpha_{i,m})
+\end{equation}
+Considering a finite collection of cascade $C = \{\textbf{t}^1,\textbf{t}^2,\dots\}$, the likelihood of the infectious parameters is given by $\prod_{c \in C}\mathscr{L}(\textbf{t}^c;\mathscr{A})$
+\end{block}
+\end{frame}
+\begin{frame}{Inference problem}
+    \begin{block}{Problem}
+    Find the transmission rates $\alpha_{i,j} \in \mathscr{A}$ for every pair of nodes such that the likelihood is maximized.
+    \begin{equation}
+    \begin{split}
+        &\min_{\mathscr{A}} -\sum_{c\in C}\log \mathscr{L}(\textbf{t}^c;\mathscr{A})\\
+        &\text{s.t  } \alpha_{i,j}\geq 0, i,j = 1,\dots,N, i\neq j
+    \end{split}
+    \end{equation}
+
+    \end{block}
+\end{frame}
+\begin{frame}{Properties}
+        $\mathscr{L}(C;\mathscr{A}) = \sum_{c \in C}\Psi_1(\textbf{t}^c;\mathscr{A})+\Psi_2(\textbf{t}^c;\mathscr{A})+\Psi_3(\textbf{t}^c;\mathscr{A})$
+    \begin{equation}
+        \begin{split}
+        &\Psi_1(\textbf{t}^c;\mathscr{A}) = \sum_{i:t_i\leq T}\sum_{m : t_m>T} \log S(T-t_i;\alpha_{i,m}) = \sum_{i:t_i\leq T}\sum_{m : t_m>T} \alpha_{i,m}(T-t_i)\\
+       &\Psi_2(\textbf{t}^c;\mathscr{A}) = \sum_{i:t_i\leq T}\sum_{j:t_j<t_i}\log S(t_i-t_j;\alpha_{j,i}) = \sum_{i:t_i\leq T}\sum_{j : t_j<t_i} \alpha_{j,i}(t_i-t_j)\\
+        &\Psi_3(\textbf{t}^c;\mathscr{A}) = \sum_{i:t_i\leq T}\log(\sum_{j:t_j<t_i}H(t_i-t_j;\alpha_{j,i})) = \sum_{i:t_i\leq T}\log(\sum_{j:t_j<t_i}\alpha_{j,i}) 
+        \end{split}
+    \end{equation}
 \end{frame}
 \section{New algorithm}
+\begin{frame}{Solving using ADMM}
+    \begin{block}{ADMM for node i}
+    Let $g_1(\textbf{t}^c;\Vec{\alpha_i}) = \sum_{j:t_j \leq T} \alpha_{j,i}(T-t_j) + \sum_{j : t_j<t_i} \alpha_{j,i}(t_i-t_j)$ and $g_2(\textbf{t}^c;z) = \log z $. The optimization problem reads now :
+    \begin{equation}
+        \begin{split}
+            &\min_{\mathscr{A},z} -\sum_{c\in C}g_1(\textbf{t}^c;\Vec{\alpha_i}) +  g_2(\textbf{t}^c;z)\\
+            &\text{s.t } z_c = \sum_{j:t_j<t_i}\alpha_{j,i} = M_c \alpha_i, \alpha_{k,i} \geq 0 \forall k\in V.
+        \end{split}
+    \end{equation}
+    \end{block}
+    \begin{block}{augmented lagrangian}
+    \begin{equation}
+        L_\beta(\alpha_i,z,\lambda) = g_1(\textbf{t}^c;\Vec{\alpha_i}) + g_2(\textbf{t}^c;z) + \lambda(M_c \alpha_i - z_c) + \beta/2||M_c\alpha_i -z_c||^2_2
+    \end{equation}
+    \end{block}
+\end{frame}
+
+\begin{frame}{ADMM iteration}
+    \begin{block}{Iteration}
+    \begin{equation}
+        \begin{split}
+            &\alpha_i^k = \min_{\alpha_i} -\sum_{c\in C} g_1(\textbf{t}^c;\Vec{\alpha_i}) + \lambda^{k-1}(M_c \alpha_i) + \beta/2 ||M_c\alpha_i - z_c^{k-1}||^2_2\\
+            &z^k = \min_z -\sum_{c\in C} g_2(\textbf{t}^c;z) - \lambda^{k-1} z_c + \beta/2 ||M_c \alpha_i^k -z_c||_2^2\\
+            &\lambda^k = \lambda^k + \beta(M\alpha_i^k - z^k)
+        \end{split}
+    \end{equation}
+   \end{block}
+    \begin{block}{Remark}
+    Under the assumption that $g_1$ and $g_2$ are convex functions then, according to \cite{ADMM_Convergence}, ADMM converge in $O(1/t)$.
+    \end{block}
+\end{frame}
 \section{Results}
+
 \section{Conclusion}
+\begin{frame}{Bibliographie}
+    \bibliographystyle{plain}
+    \bibliography{bibliographie}
+\end{frame}
 \end{document}
