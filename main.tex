@@ -123,7 +123,7 @@ Diseases
 \begin{block}{Propagation Rules}
 \begin{itemize}
     \item The infection is observed during a time window of length T,
-    \item A vertex can only infect its neighbours,
+    \item A vertex infects its neighbours with probability 1,
     \item Once a vertex is infected it can not be infected again.
 \end{itemize}
 \end{block}
@@ -202,7 +202,23 @@ To each pair of vertices $(i,j)$ a weight, $\alpha_{i,j} \geq 0$, corresponding 
     \item If $X{\sim} Exp(\alpha)$ then $E[X]=\frac{1}{\alpha}$. It is the \textit{expected waiting time}.
 \end{itemize}
 \end{block}
+\end{frame}
 
+\begin{frame}{Example}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[scale = 0.1]{G_star.png}
+    \caption{Inferred Network $\hat{G} = (10,21)$ with $MSE = 0.015$.}
+\end{figure}
+\column{0.5\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[scale = 0.1]{G-true2.png}
+    \caption{True network $G^* = (10,20)$ with $|C| = 100$ cascades.}
+\end{figure}
+\end{columns}
 \end{frame}
 \begin{frame}{Problem formulation}
 \begin{block}{Problem 1- Discrete optimization}
@@ -260,9 +276,6 @@ Given a collection of cascade $C$, find the correct infection parameters set $\m
     H(t_i|t_j;\alpha_{j,i}) = \frac{f_{\alpha_{j,i}}(t_i-t_j)}{S(t_i-t_j;\alpha_{j,i})} = \alpha_{j,i}
 \end{equation}
 \end{itemize}
-\end{frame}
-
-\begin{frame}{Example}
 \end{frame}
 
 \begin{frame}{Likelihood of an edge in a cascade}
@@ -349,7 +362,43 @@ Considering a finite collection of cascade $C = \{\textbf{t}^1,\textbf{t}^2,\dot
     \end{block}
 \end{frame}
 \section{Results}
-
+\begin{frame}{Measurments tools}
+    \begin{block}{Precision,Recall,Accuracy}
+    Let $G^*=(V,E^*)$ be the true network and $\hat{G} = (V, \hat{E})$ be the inferred network.
+    Precision : \begin{equation*}
+        P := \frac{|\hat{E}\cap E^*|}{|\hat{E}|}
+    \end{equation*}
+    Recall :\begin{equation*}
+        R := \frac{|\hat{E} \cap E^*|}{|E^*|}
+    \end{equation*}
+    Let $I(\alpha_{i,j}) = 1$ if $\alpha_{i,j} > 0$, 0 otherwise. Then 
+    Accuracy : \begin{equation*}
+        A := \frac{\sum_{i,j}|I(\alpha^*_{i,j})-I(\hat{\alpha}_{i,j})|}{\sum_{i,j}|I(\alpha^*_{i,j})+I(\hat{\alpha}_{i,j})|}
+    \end{equation*}
+    \end{block}
+\end{frame}
+\begin{frame}{Results}
+ % Please add the following required packages to your document preamble:
+% \usepackage{multirow}
+\begin{table}[scale = 0.5]
+\begin{tabular}{|l|l|l|l|l|l|l|}
+\hline
+\textbf{Graphs} & \textbf{Algos} & \textbf{Precision} & \textbf{Recall} & \textbf{Accuracy} & \textbf{MSE} & \textbf{Time} \\ \hline
+\multirow{4}{*}{\textbf{(500,1k)}} & \textbf{NF} & 85 & 85 & 85 & - & 384 \\ \cline{2-7} 
+ & \textbf{CVX} & 89 & 94 & 91 & 0.93 & 2192 \\ \cline{2-7} 
+ & \textbf{SGD} & 84 & 93 & 88 & 0.05 & 818 \\ \cline{2-7} 
+ & \textbf{ADMM} & 88 & 92 & 90 & 0.03 & 954 \\ \hline
+\multirow{4}{*}{\textbf{(800,800)}} & \textbf{NF} & 81 & 81 & 81 & - & 11 \\ \cline{2-7} 
+ & \textbf{CVX} & 83 & 86 & 84 & 6.02 & 593 \\ \cline{2-7} 
+ & \textbf{SGD} & 67 & 88 & 76 & 0.16 & 112 \\ \cline{2-7} 
+ & \textbf{ADMM} & 83 & 83 & 83 & 0.11 & 257 \\ \hline
+\multirow{4}{*}{\textbf{(1k,1k)}} & \textbf{NF} & 74 & 74 & 74 & - & 10 \\ \cline{2-7} 
+ & \textbf{CVX} & 81 & 82 & 81 & 22.9 & 898 \\ \cline{2-7} 
+ & \textbf{SGD} & 67 & 85 & 75 & 0.16 & 128 \\ \cline{2-7} 
+ & \textbf{ADMM} & 81 & 80 & 80 & 0.14 & 327 \\ \hline
+\end{tabular}
+\end{table}
+\end{frame}
 \section{Conclusion}
 \begin{frame}{Bibliographie}
     \bibliographystyle{plain}
